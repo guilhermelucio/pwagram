@@ -27,7 +27,9 @@ function closeCreatePostModal() {
 }
 
 function createSaveButton() {
-  return document.createElement('button');
+  const saveButton = document.createElement('button');
+  saveButton.textContent = 'Save';
+  return saveButton;
 }
 
 function createCardSupportingText() {
@@ -60,9 +62,24 @@ function createCardWrapper() {
   return cardWrapper;
 }
 
-shareImageButton.addEventListener('click', openCreatePostModal);
+const cacheCard = (event) => {
+  if ('caches' in window) {
+    caches.open('pwagram-user-requested')
+      .then(cache => {
+        cache.addAll([
+          'https://httpbin.org/get',
+          'src/images/sf-boat.jpg'
+        ]);
+      });
+  }
+};
 
+const onSave = event => cacheCard(event);
+const addSaveEventListener = (name, el) => el.addEventListener(name, onSave);
+
+shareImageButton.addEventListener('click', openCreatePostModal);
 closeCreatePostModalButton.addEventListener('click', closeCreatePostModal);
+
 
 function createCard() {
   var cardWrapper = createCardWrapper();
@@ -71,8 +88,6 @@ function createCard() {
   var cardTitleTextElement = createCardTitleText();
   cardTitle.appendChild(cardTitleTextElement);
   var cardSupportingText = createCardSupportingText();
-  var cardSaveButton = createSaveButton();
-  cardSupportingText.appendChild(cardSaveButton);
   cardWrapper.appendChild(cardSupportingText);
   componentHandler.upgradeElement(cardWrapper);
   sharedMomentsArea.appendChild(cardWrapper);
