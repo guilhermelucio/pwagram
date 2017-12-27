@@ -26,27 +26,53 @@ function closeCreatePostModal() {
   createPostArea.style.display = 'none';
 }
 
+function createSaveButton() {
+  return document.createElement('button');
+}
+
+function createCardSupportingText() {
+  const cardSupportingText = document.createElement('div');
+  cardSupportingText.className = 'mdl-card__supporting-text';
+  cardSupportingText.textContent = 'In San Francisco';
+  cardSupportingText.style.textAlign = 'center';
+  return cardSupportingText;
+}
+
+function createCardTitleText() {
+  const cardTitleTextElement = document.createElement('h2');
+  cardTitleTextElement.className = 'mdl-card__title-text';
+  cardTitleTextElement.textContent = 'San Francisco Trip';
+  return cardTitleTextElement;
+}
+
+function createCardTitle() {
+  const cardTitle = document.createElement('div');
+  cardTitle.className = 'mdl-card__title';
+  cardTitle.style.backgroundImage = 'url("/src/images/sf-boat.jpg")';
+  cardTitle.style.backgroundSize = 'cover';
+  cardTitle.style.height = '180px';
+  return cardTitle;
+}
+
+function createCardWrapper() {
+  const cardWrapper = document.createElement('div');
+  cardWrapper.className = 'shared-moment-card mdl-card mdl-shadow--2dp';
+  return cardWrapper;
+}
+
 shareImageButton.addEventListener('click', openCreatePostModal);
 
 closeCreatePostModalButton.addEventListener('click', closeCreatePostModal);
 
 function createCard() {
-  var cardWrapper = document.createElement('div');
-  cardWrapper.className = 'shared-moment-card mdl-card mdl-shadow--2dp';
-  var cardTitle = document.createElement('div');
-  cardTitle.className = 'mdl-card__title';
-  cardTitle.style.backgroundImage = 'url("/src/images/sf-boat.jpg")';
-  cardTitle.style.backgroundSize = 'cover';
-  cardTitle.style.height = '180px';
+  var cardWrapper = createCardWrapper();
+  var cardTitle = createCardTitle();
   cardWrapper.appendChild(cardTitle);
-  var cardTitleTextElement = document.createElement('h2');
-  cardTitleTextElement.className = 'mdl-card__title-text';
-  cardTitleTextElement.textContent = 'San Francisco Trip';
+  var cardTitleTextElement = createCardTitleText();
   cardTitle.appendChild(cardTitleTextElement);
-  var cardSupportingText = document.createElement('div');
-  cardSupportingText.className = 'mdl-card__supporting-text';
-  cardSupportingText.textContent = 'In San Francisco';
-  cardSupportingText.style.textAlign = 'center';
+  var cardSupportingText = createCardSupportingText();
+  var cardSaveButton = createSaveButton();
+  cardSupportingText.appendChild(cardSaveButton);
   cardWrapper.appendChild(cardSupportingText);
   componentHandler.upgradeElement(cardWrapper);
   sharedMomentsArea.appendChild(cardWrapper);

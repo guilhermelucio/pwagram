@@ -1,5 +1,5 @@
-const CACHE_STATIC_NAME = 'pwgram-static-v3';
-const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v3';
+const CACHE_STATIC_NAME = 'pwgram-static-v4.0.1';
+const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.1';
 
 /* 
  * `self` refers to the serviceWorker
