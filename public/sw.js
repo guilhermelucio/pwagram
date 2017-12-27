@@ -76,7 +76,10 @@ self.addEventListener('fetch', event => {
     const openOfflinePage = () => {
         return caches.open(CACHE_STATIC_NAME)
             .then(cache => {
-                if (event.request.url.indexOf('/help') > 1) return cache.match('/offline.html');
+                console.log(event.request.headers.get('accept'));
+                if (event.request.headers.get('accept').includes('text/html')) {
+                    return cache.match('/offline.html');
+                }
             });
     };
 
