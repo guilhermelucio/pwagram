@@ -1,5 +1,5 @@
-const CACHE_STATIC_NAME = 'pwgram-static-v4.0.6';
-const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.6';
+const CACHE_STATIC_NAME = 'pwgram-static-v4.0.7';
+const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.7';
 
 /* 
  * `self` refers to the serviceWorker
@@ -23,6 +23,7 @@ self.addEventListener('install',  event => {
                 cache.addAll([
                     '/',
                     '/index.html',
+                    '/offline.html',
                     '/src/js/app.js',
                     '/src/js/feed.js',
                     '/src/js/material.min.js',
@@ -66,6 +67,13 @@ self.addEventListener('fetch', event => {
     // console.log('[Service Worker] Fetching something...', event);
     // A service worker can be used as a kind of proxy
 
+    const openOfflinePage = () => {
+        return caches.open(CACHE_STATIC_NAME)
+            .then(cache => {
+                return cache.match('/offline.html');
+            });
+    };
+
     const cacheDynamicFiles = (response) => {
         /**
          * `put` does do any request, just stores data, different than `add`
@@ -92,8 +100,10 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request)
             .then(response => {
-                return (response) ? response : fetch(event.request).then(cacheDynamicFiles)
+                return (response) ? response : fetch(event.request)
+                    .then(cacheDynamicFiles)
+                    .catch(openOfflinePage)
             })
-            .catch(err => console.error(err))
+            .catch(err => caches.open)
     );
 });
