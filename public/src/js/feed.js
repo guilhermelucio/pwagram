@@ -62,6 +62,12 @@ function createCardWrapper() {
   return cardWrapper;
 }
 
+function clearElement(element) {
+  while(element.hasChildNodes()) {
+    element.removeChild(element.lastChild);
+  }
+}
+
 const cacheCard = (event) => {
   if ('caches' in window) {
     caches.open('pwagram-user-requested')
@@ -93,10 +99,38 @@ function createCard() {
   sharedMomentsArea.appendChild(cardWrapper);
 }
 
+/**
+ * Using the cache first, then request strategy.
+ * Which basically means that a request will be fire to the server,
+ * at the same time a cached version will be search, if it has been found,
+ * it will be returned.
+ * When the request is resolved, it will override the cached version and it will
+ * override the cache as well, to keep it updated.
+ */
+let networkDataReceived = false;
+
 fetch('https://httpbin.org/get')
   .then(function(res) {
     return res.json();
   })
   .then(function(data) {
-    createCard();
+    console.log('From Web', data);
+    clearElement(sharedMomentsArea);
+    networkDataReceived = true;
+    return createCard();
   });
+
+// Remember to check if the `caches` object is available
+if ('caches' in window) {
+  caches.match('https://httpbin.org/get')
+    .then(response => {
+      console.log(response);
+      return response ? response.json() : null;
+    })
+    .then(data => {
+      console.log('From cache', data);
+      clearElement(sharedMomentsArea);
+      return (data && !networkDataReceived) ? createCard() : null;
+    });
+}
+

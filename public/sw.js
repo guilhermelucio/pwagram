@@ -1,5 +1,5 @@
-const CACHE_STATIC_NAME = 'pwgram-static-v4.0.7';
-const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.7';
+const CACHE_STATIC_NAME = 'pwgram-static-v4.0.12';
+const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.12';
 
 /* 
  * `self` refers to the serviceWorker
@@ -67,43 +67,72 @@ self.addEventListener('fetch', event => {
     // console.log('[Service Worker] Fetching something...', event);
     // A service worker can be used as a kind of proxy
 
-    const openOfflinePage = () => {
-        return caches.open(CACHE_STATIC_NAME)
-            .then(cache => {
-                return cache.match('/offline.html');
-            });
-    };
-
-    const cacheDynamicFiles = (response) => {
-        /**
-         * `put` does do any request, just stores data, different than `add`
-         */
-        return caches.open(CACHE_DYNAMIC_NAME)
-            .then(cache => {
-                /**
-                 * GOTCHA, response can just be used once, it sounds odd but anyway...
-                 * if response is used on the `put` method, the value returned by the
-                 * method that also uses response will be `undefined`. Thus in order
-                 * to store the value and return it, so that the HTML can render it,
-                 * the `cache` put method receives a clone of the response
-                 */
-                cache.put(event.request.url, response.clone());
-                return response;
-            });
-    }
+    // url that will use the request and cache strategy
+    let url = 'https://httpbin.org/get';
 
     /**
-     * caches.match will look for keys on the application cache,
-     * if it finds one that matches the current request fired, it returns the cached
-     * file, otherwise it fires a `fetch` request
+     * Fallback when there is no network and the files were not being cached
      */
-    event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                return (response) ? response : fetch(event.request)
-                    .then(cacheDynamicFiles)
-                    .catch(openOfflinePage)
-            })
-            .catch(err => caches.open)
-    );
+    const openOfflinePage = () => {
+        return caches.open(CACHE_STATIC_NAME)
+            .then(cache => cache.match('/offline.html'));
+    };
+
+    /**
+     * After receiving a response from the server, first adding the file received
+     * to the dynamic cache, then returning the response.
+     * NOTE
+     * It's important to note that all normal request will pass here, thus
+     * all the content will be placed on the cache
+     * NOTE
+     * Despite saving on the cache, it's important to return the `response` object
+     * since the javascript file that sent the request is waiting for a response
+     * NOTE - GOTCHA
+     * response can just be used once, it sounds odd but anyway...
+     * if response is used on the `put` method, the value returned by the
+     * method that also uses response will be `undefined`. Thus in order
+     * to store the value and return it, so that the HTML can render it,
+     * the `cache` put method receives a clone of the response
+     */
+    const cacheDynamicFiles = (response) => {
+        if (response) return response;
+        return fetch(event.request).then(response => {
+            return caches.open(CACHE_DYNAMIC_NAME)
+                .then(cache => {
+                    /**
+                     * `put` does do any request, just stores data, different than `add`
+                     */
+                    cache.put(event.request.url, response.clone());
+                    return response;
+                });
+        });
+    };
+
+    /**
+     * Using the network-cache strategy for the request set at the `url` variable
+     * which generally means highly dynamic requests that must reach the internet every time
+     */
+    if (event.request.url.indexOf(url) > -1) {
+        event.respondWith(
+            caches.open(CACHE_DYNAMIC_NAME)
+                .then(cache => {
+                    return fetch(event.request)
+                        .then(response => {
+                            console.log(response);
+                            cache.put(event.request, response.clone());
+                            return response;
+                        });
+                })
+        );
+    } else {
+        /**
+         * Responding with cache first, network request fallback strategy for all the mormal assets,
+         * such as css files, js files and so on
+         */
+        event.respondWith(
+            caches.match(event.request)
+                .then(cacheDynamicFiles)
+                .catch(openOfflinePage)
+        );
+    }
 });
