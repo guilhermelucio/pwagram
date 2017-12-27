@@ -1,3 +1,6 @@
+const CACHE_STATIC_NAME = 'pwgram-static-v3';
+const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v3';
+
 /* 
  * `self` refers to the serviceWorker
  * NOTE - The service worker does not have access to the DOM
@@ -11,7 +14,7 @@ self.addEventListener('install',  event => {
      * is called, which consumes the cached files
      */
     event.waitUntil(
-        caches.open('pwagram-static')
+        caches.open(CACHE_STATIC_NAME)
             .then(cache => {
                 console.log('[Service Worker] Precaching App Shell');
                 /**
@@ -36,6 +39,25 @@ self.addEventListener('install',  event => {
 
 // Lifecycle event
 self.addEventListener('activate', event => {
+    /**
+     * Safe place to clean the previous cache version, because the installation
+     * occurs when all the tabs were closed and a new version will be installed
+     */
+    event.waitUntil(
+        caches.keys()
+            .then(keylist => {
+                console.log('called');
+                const promises = keylist.map(key => {
+                    if (key !== CACHE_STATIC_NAME && key !== CACHE_DYNAMIC_NAME) {
+                        console.log('[Service Worker] Removing old cache', key);
+                        return caches.delete(key);
+                    }
+                });
+                console.log(promises);
+                return Promise.all(promises);
+            })
+    )
+
     // console.log('[Service Worker] Activating service worker...', event);
     return self.clients.claim();
 });
@@ -48,7 +70,7 @@ self.addEventListener('fetch', event => {
         /**
          * `put` does do any request, just stores data, different than `add`
          */
-        return caches.open('pwagram-dynamic')
+        return caches.open(CACHE_DYNAMIC_NAME)
             .then(cache => {
                 /**
                  * GOTCHA, response can just be used once, it sounds odd but anyway...
@@ -72,5 +94,6 @@ self.addEventListener('fetch', event => {
             .then(response => {
                 return (response) ? response : fetch(event.request).then(cacheDynamicFiles)
             })
+            .catch(err => console.error(err))
     );
 });
