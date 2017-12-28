@@ -1,10 +1,27 @@
-const CACHE_STATIC_NAME = 'pwgram-static-v4.0.16';
-const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.16';
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.js')
+importScripts('/src/js/idb.js');
+
+const CACHE_STATIC_NAME = 'pwgram-static-v4.1.1';
+const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.1.1';
 
 /* 
  * `self` refers to the serviceWorker
  * NOTE - The service worker does not have access to the DOM
  */
+
+// (name, version, callback)
+const dbPromise = idb.open('posts-store', 1, db => {
+    /**
+     * Creating a store with a name
+     * keyPath will be used to retrieve information using the name of the key
+     * that later will be used to retrieve the data.
+     * For example, if objects were passed with an `id`, those ids can be used to find
+     * the objects
+     */
+    if(!db.objectsStoreNames.contains('posts')) {
+        db.createObjectStore('posts', { keyPath: 'id' });
+    }
+});
 
 function trimCache(cacheName, maxItems) {
     caches.open(cacheName)
@@ -135,13 +152,19 @@ self.addEventListener('fetch', event => {
      */
     if (event.request.url.indexOf(url) > -1) {
         event.respondWith(
-            caches.open(CACHE_DYNAMIC_NAME)
-                .then(cache => {
-                    return fetch(event.request)
-                        .then(response => {
-                            cache.put(event.request, response.clone());
-                            return response;
-                        });
+            fetch(event.request)
+                .then(response => {
+                    const res = response.clone();
+                    res.json()
+                        .then(posts => _.map(posts, post => {
+                            dbPromise.then(db => {
+                                const transaction = db.transaction('posts', 'readwrite');
+                                const store = transaction.objectStore('posts');
+                                store.put(post);
+                                return transaction.complete;
+                            });
+                        }));
+                    return response;
                 })
         );
     } else {
