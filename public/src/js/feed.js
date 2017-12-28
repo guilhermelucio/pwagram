@@ -1,3 +1,5 @@
+const POSTS_REQUEST = 'https://pwa-gram-7e675.firebaseio.com/posts.json';
+
 var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
 var closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
@@ -32,25 +34,25 @@ function createSaveButton() {
   return saveButton;
 }
 
-function createCardSupportingText() {
+function createCardSupportingText(text) {
   const cardSupportingText = document.createElement('div');
   cardSupportingText.className = 'mdl-card__supporting-text';
-  cardSupportingText.textContent = 'In San Francisco';
+  cardSupportingText.textContent = text;
   cardSupportingText.style.textAlign = 'center';
   return cardSupportingText;
 }
 
-function createCardTitleText() {
+function createCardTitleText(title) {
   const cardTitleTextElement = document.createElement('h2');
   cardTitleTextElement.className = 'mdl-card__title-text';
-  cardTitleTextElement.textContent = 'San Francisco Trip';
+  cardTitleTextElement.textContent = title;
   return cardTitleTextElement;
 }
 
-function createCardTitle() {
+function createCardTitle(imageUrl) {
   const cardTitle = document.createElement('div');
   cardTitle.className = 'mdl-card__title';
-  cardTitle.style.backgroundImage = 'url("/src/images/sf-boat.jpg")';
+  cardTitle.style.backgroundImage = `url("${imageUrl}")`;
   cardTitle.style.backgroundSize = 'cover';
   cardTitle.style.height = '180px';
   return cardTitle;
@@ -87,16 +89,26 @@ shareImageButton.addEventListener('click', openCreatePostModal);
 closeCreatePostModalButton.addEventListener('click', closeCreatePostModal);
 
 
-function createCard() {
+function createCard(post) {
   var cardWrapper = createCardWrapper();
-  var cardTitle = createCardTitle();
+
+  // Outer frame with a picture
+  var cardTitle = createCardTitle(post.image);
   cardWrapper.appendChild(cardTitle);
-  var cardTitleTextElement = createCardTitleText();
+
+  // Title of the card
+  var cardTitleTextElement = createCardTitleText(post.title);
   cardTitle.appendChild(cardTitleTextElement);
-  var cardSupportingText = createCardSupportingText();
+
+  // Description of the card
+  var cardSupportingText = createCardSupportingText(post.location);
   cardWrapper.appendChild(cardSupportingText);
   componentHandler.upgradeElement(cardWrapper);
   sharedMomentsArea.appendChild(cardWrapper);
+}
+
+function updateUI(posts) {
+  _.map(posts, post => createCard(post));
 }
 
 /**
@@ -109,28 +121,25 @@ function createCard() {
  */
 let networkDataReceived = false;
 
-fetch('https://httpbin.org/get')
+fetch(POSTS_REQUEST)
   .then(function(res) {
     return res.json();
   })
   .then(function(data) {
-    console.log('From Web', data);
     clearElement(sharedMomentsArea);
     networkDataReceived = true;
-    return createCard();
+    return updateUI(data);
   });
 
 // Remember to check if the `caches` object is available
 if ('caches' in window) {
-  caches.match('https://httpbin.org/get')
+  caches.match(POSTS_REQUEST)
     .then(response => {
-      console.log(response);
       return response ? response.json() : null;
     })
     .then(data => {
-      console.log('From cache', data);
       clearElement(sharedMomentsArea);
-      return (data && !networkDataReceived) ? createCard() : null;
+      return (data && !networkDataReceived) ? updateUI(data) : null;
     });
 }
 

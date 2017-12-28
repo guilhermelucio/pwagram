@@ -1,5 +1,5 @@
-const CACHE_STATIC_NAME = 'pwgram-static-v4.0.14';
-const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.14';
+const CACHE_STATIC_NAME = 'pwgram-static-v4.0.16';
+const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.16';
 
 /* 
  * `self` refers to the serviceWorker
@@ -37,11 +37,13 @@ self.addEventListener('install',  event => {
                     '/index.html',
                     '/offline.html',
                     '/src/js/app.js',
+                    '/src/js/idb.js',
                     '/src/js/feed.js',
                     '/src/js/material.min.js',
                     '/src/css/app.css',
                     '/src/css/feed.css',
                     '/src/images/main-image.jpg',
+                    'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.js',
                     'https://fonts.googleapis.com/css?family=Roboto:400,700',
                     'https://fonts.googleapis.com/icon?family=Material+Icons',
                     'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css'
@@ -80,7 +82,7 @@ self.addEventListener('fetch', event => {
     // A service worker can be used as a kind of proxy
 
     // url that will use the request and cache strategy
-    let url = 'https://httpbin.org/get';
+    let url = 'https://pwa-gram-7e675.firebaseio.com/posts.json';
 
     /**
      * Fallback when there is no network and the files were not being cached
@@ -115,8 +117,8 @@ self.addEventListener('fetch', event => {
         return fetch(event.request).then(response => {
             return caches.open(CACHE_DYNAMIC_NAME)
                 .then(cache => {
-                    // Clean cache adding a limit of 10 items
-                    trimCache(CACHE_DYNAMIC_NAME, 10);
+                    // Clean cache adding a limit of 100 items
+                    trimCache(CACHE_DYNAMIC_NAME, 100);
 
                     /**
                      * `put` does do any request, just stores data, different than `add`
