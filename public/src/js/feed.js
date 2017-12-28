@@ -132,14 +132,14 @@ fetch(POSTS_REQUEST)
   });
 
 // Remember to check if the `caches` object is available
-if ('caches' in window) {
-  caches.match(POSTS_REQUEST)
-    .then(response => {
-      return response ? response.json() : null;
-    })
+if ('indexedDB' in window) {
+  readAllData('posts')
     .then(data => {
-      clearElement(sharedMomentsArea);
-      return (data && !networkDataReceived) ? updateUI(data) : null;
+      if (!networkDataReceived) {
+        console.log(data);
+        clearElement(sharedMomentsArea);
+        updateUI(data);
+      }
     });
 }
 
