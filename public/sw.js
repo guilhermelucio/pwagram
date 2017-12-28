@@ -1,10 +1,22 @@
-const CACHE_STATIC_NAME = 'pwgram-static-v4.0.12';
-const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.12';
+const CACHE_STATIC_NAME = 'pwgram-static-v4.0.14';
+const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.0.14';
 
 /* 
  * `self` refers to the serviceWorker
  * NOTE - The service worker does not have access to the DOM
  */
+
+function trimCache(cacheName, maxItems) {
+    caches.open(cacheName)
+        .then(cache => cache.keys()
+            .then(keys => {
+                if (keys.length > maxItems) {
+                    cache.delete(keys[0])
+                        .then(trimCache(cacheName, maxItems));
+                }
+            })
+        );
+}
 
 // Lifecycle event
 self.addEventListener('install',  event => {
@@ -76,7 +88,6 @@ self.addEventListener('fetch', event => {
     const openOfflinePage = () => {
         return caches.open(CACHE_STATIC_NAME)
             .then(cache => {
-                console.log(event.request.headers.get('accept'));
                 if (event.request.headers.get('accept').includes('text/html')) {
                     return cache.match('/offline.html');
                 }
@@ -104,6 +115,9 @@ self.addEventListener('fetch', event => {
         return fetch(event.request).then(response => {
             return caches.open(CACHE_DYNAMIC_NAME)
                 .then(cache => {
+                    // Clean cache adding a limit of 10 items
+                    trimCache(CACHE_DYNAMIC_NAME, 10);
+
                     /**
                      * `put` does do any request, just stores data, different than `add`
                      */
@@ -123,7 +137,6 @@ self.addEventListener('fetch', event => {
                 .then(cache => {
                     return fetch(event.request)
                         .then(response => {
-                            console.log(response);
                             cache.put(event.request, response.clone());
                             return response;
                         });
