@@ -2,8 +2,8 @@ importScripts('https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.js
 importScripts('/src/js/idb.js');
 importScripts('/src/js/db.js');
 
-const CACHE_STATIC_NAME = 'pwgram-static-v4.2.4';
-const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.2.4';
+const CACHE_STATIC_NAME = 'pwgram-static-v4.2.5';
+const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.2.5';
 const POSTS_REQUEST = 'https://pwa-gram-7e675.firebaseio.com/posts.json';
 
 /* 
@@ -203,4 +203,24 @@ self.addEventListener('sync', event => {
                     );
             break;
     }
+});
+
+/**
+ * Whenever the user interacts with the notification system
+ */
+self.addEventListener('notificationclick', event => {
+    const notification = event.notification;
+    const action = event.action;
+
+    if (action === 'confirm') {
+        console.log('[SW Notification] confirm clicked');
+    } else {
+        console.log('[SW Noticication] generic action');
+    }
+
+    notification.close();
+});
+
+self.addEventListener('notificationclose', event => {
+    console.log('[SW Notification] notification was closed');
 });
