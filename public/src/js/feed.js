@@ -4,6 +4,60 @@ var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
 var closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
 var sharedMomentsArea = document.querySelector('#shared-moments');
+const form = document.querySelector('form');
+const inpTitle = document.querySelector('#title');
+const inpLocation = document.querySelector('#location');
+
+function sendData(id, title, location) {
+  fetch('https://us-central1-pwa-gram-7e675.cloudfunctions.net/storePostData', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      id: id,
+      title: title,
+      location: location,
+      image: 'https://firebasestorage.googleapis.com/v0/b/pwa-gram-7e675.appspot.com/o/sf-boat.jpg?alt=media&token=a2694b9c-aeb1-44da-a96d-9aff0c35c5e8'
+    })
+  }).then(data => {
+    console.log(JSON.parse(data));
+    updateUI();
+  });
+}
+
+function onFormSubmit(form) {
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    if (inpTitle.value.trim() !== '' && inpLocation.value.trim() !== '') {
+      const post = {
+        id: new Date().toISOString(),
+        title: inpTitle.value,
+        location: inpLocation.value,
+        image: 'https://firebasestorage.googleapis.com/v0/b/pwa-gram-7e675.appspot.com/o/sf-boat.jpg?alt=media&token=a2694b9c-aeb1-44da-a96d-9aff0c35c5e8'
+      };
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        navigator.serviceWorker.ready
+          .then(sw => {
+            writeData('sync-posts', post)
+              .then(() => sw.sync.register('sync-new-post'))
+              .then(() => {
+                const snackBarContainer = document.querySelector('#confirmation-toast');
+                const data = { message: 'Your post was saved for syncing' };
+                snackBarContainer.MaterialSnackbar.showSnackbar(data);
+              })
+              .catch(err => console.log(err));
+          });
+      } else {
+        sendData(id, title, location)
+      }
+    } else {
+      alert('Please add valid data');
+    }
+    return;
+  });
+}
 
 function openCreatePostModal() {
   createPostArea.style.display = 'block';
@@ -11,8 +65,6 @@ function openCreatePostModal() {
     deferredPrompt.prompt();
 
     deferredPrompt.userChoice.then(function(choiceResult) {
-      console.log(choiceResult.outcome);
-
       if (choiceResult.outcome === 'dismissed') {
         console.log('User cancelled installation');
       } else {
@@ -103,7 +155,7 @@ function createCard(post) {
   // Description of the card
   var cardSupportingText = createCardSupportingText(post.location);
   cardWrapper.appendChild(cardSupportingText);
-  componentHandler.upgradeElement(cardWrapper);
+  // componentHandler.upgradeElement(cardWrapper);
   sharedMomentsArea.appendChild(cardWrapper);
 }
 
@@ -136,10 +188,12 @@ if ('indexedDB' in window) {
   readAllData('posts')
     .then(data => {
       if (!networkDataReceived) {
-        console.log(data);
         clearElement(sharedMomentsArea);
         updateUI(data);
       }
     });
 }
+
+// Adding the onSubmit behavior
+onFormSubmit(form);
 

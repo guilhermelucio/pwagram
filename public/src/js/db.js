@@ -7,8 +7,12 @@ const dbPromise = idb.open('posts-store', 1, db => {
      * For example, if objects were passed with an `id`, those ids can be used to find
      * the objects
      */
-    if(!db.objectsStoreNames.contains('posts')) {
+    if(!db.objectsStoreNames || !db.objectsStoreNames.contains('posts')) {
         db.createObjectStore('posts', { keyPath: 'id' });
+    }
+    if(!db.objectsStoreNames || !db.objectsStoreNames.contains('sync-posts')) {
+        console.log('should create a new db');
+        db.createObjectStore('sync-posts', { keyPath: 'id' });
     }
 });
 

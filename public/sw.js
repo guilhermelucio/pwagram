@@ -2,8 +2,9 @@ importScripts('https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.js
 importScripts('/src/js/idb.js');
 importScripts('/src/js/db.js');
 
-const CACHE_STATIC_NAME = 'pwgram-static-v4.1.5';
-const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.1.5';
+const CACHE_STATIC_NAME = 'pwgram-static-v4.2.4';
+const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.2.4';
+const POSTS_REQUEST = 'https://pwa-gram-7e675.firebaseio.com/posts.json';
 
 /* 
  * `self` refers to the serviceWorker
@@ -65,14 +66,12 @@ self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys()
             .then(keylist => {
-                console.log('called');
                 const promises = keylist.map(key => {
                     if (key !== CACHE_STATIC_NAME && key !== CACHE_DYNAMIC_NAME) {
                         console.log('[Service Worker] Removing old cache', key);
                         return caches.delete(key);
                     }
                 });
-                console.log(promises);
                 return Promise.all(promises);
             })
     )
@@ -86,7 +85,7 @@ self.addEventListener('fetch', event => {
     // A service worker can be used as a kind of proxy
 
     // url that will use the request and cache strategy
-    let url = 'https://pwa-gram-7e675.firebaseio.com/posts.json';
+    let url = POSTS_REQUEST;
 
     /**
      * Fallback when there is no network and the files were not being cached
@@ -160,5 +159,48 @@ self.addEventListener('fetch', event => {
                 .then(cacheDynamicFiles)
                 .catch(openOfflinePage)
         );
+    }
+});
+
+/**
+ * This event occurs whenever the Service Worker believes the connection was re-established,
+ * or if the connection was already there when registered
+ */
+self.addEventListener('sync', event => {
+    console.log('[Service Worker] Background sync', event);
+
+    switch (event.tag) {
+        case 'sync-new-post':
+            console.log('[Service Worker] Sync New Post');
+            event.waitUntil(
+                readAllData('sync-posts')
+                    .then(posts => {
+                        console.log(posts);
+                        posts.map(post => {
+                            fetch('https://us-central1-pwa-gram-7e675.cloudfunctions.net/storePostData', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                  id: post.id,
+                                  title: post.title,
+                                  location: post.location,
+                                  image: post.image
+                                })
+                              })
+                                .then((res) => {
+                                    if (res.ok) {
+                                        res.json().then(resData => {
+                                            return deleteItem('sync-posts', resData.id);
+                                        })
+                                    }
+                                })
+                                .catch(err => console.error(err));
+                            });
+                        })
+                    );
+            break;
     }
 });
