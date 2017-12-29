@@ -55,7 +55,7 @@ function onFormSubmit(form) {
     } else {
       alert('Please add valid data');
     }
-    return;
+    return closeCreatePostModal();
   });
 }
 

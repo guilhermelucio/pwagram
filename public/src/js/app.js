@@ -1,5 +1,7 @@
 let deferredPrompt;
 const btnEnblNotf = document.querySelectorAll('.enable-notifications');
+const VAPID_PUBLIC_KEY = 'BIyTDSIbL1H8S9TdesqxlSByQVu36zADcMDIErjbceZDw3gLrEqZRbYiJt4t4Eogh6b1pgXpAZv_OqaK-0qkJ-M';
+const VAPID_PUBLIC_KEY_UINT8 = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
 
 if(!window.Promise) {
     window.Promise = Promise;
@@ -58,6 +60,47 @@ const displayConfirmedNotification = () => {
     }
 };
 
+const configurePushSubscription = () => {
+    let registration;
+
+    if (!('serviceWorker' in navigator)) return;
+    const swReady = navigator.serviceWorker.ready
+        .then(swRegistration => {
+            registration = swRegistration;
+            return swRegistration.pushManager.getSubscription();
+        })
+        .then(subscription => {
+            if (!subscription) {
+                /**
+                 * Whenever a subscription is created, the push authentication should be configured,
+                 * otherwise, any user could start sending messages on the server behalf.
+                 * NOTE - This is done using VAPID keys
+                 * The function accepts the key as uInt8 format
+                 */
+                console.log(subscription);
+                return registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: VAPID_PUBLIC_KEY_UINT8
+                });
+            } else {
+                // User has a subscription
+            }
+        })
+        .then(newSubscription => {
+            console.log(newSubscription);
+            return fetch('https://pwa-gram-7e675.firebaseio.com/subscriptions.json', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(newSubscription)
+            });
+        })
+        .then(res => (res.ok) ? displayConfirmedNotification() : null)
+        .catch(err => console.error(err));
+};
+
 const askNotificationPermission = () => {
     /**
      * Asking for Notification permission also enables the Push feature
@@ -70,13 +113,13 @@ const askNotificationPermission = () => {
             return false;
         } else {
             console.log('[Notification] Permission granted!');
-            displayConfirmedNotification();
+            configurePushSubscription();
             // OPTIONAL - Hide button
         }
     });
 };
 
-if('Notification' in window) {
+if('Notification' in window && 'serviceWorker' in navigator) {
     Array.prototype.map.call(btnEnblNotf, button => {
         button.style.display = 'inline-block';
         button.addEventListener('click', askNotificationPermission);

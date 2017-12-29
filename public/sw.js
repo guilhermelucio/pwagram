@@ -216,6 +216,33 @@ self.addEventListener('notificationclick', event => {
         console.log('[SW Notification] confirm clicked');
     } else {
         console.log('[SW Noticication] generic action');
+
+        /**
+         * `clients` refers to all browsers, windows, tabs or whatever opened
+         * on the client machine
+         */
+        event.waitUntil(
+            clients.matchAll()
+                .then(clis => {
+                    /**
+                     * Get the `client` (tab) that's opened
+                     * .find is the normal array find method
+                     * NOTE
+                     * notification.data.url was defined below when a notification
+                     * is received
+                     **/
+                    let client = clis.find(c => c.visibility === 'visible');
+                    if (client) {
+                        client.navigate(notification.data.url);
+                        client.focus();
+                    } else {
+                        /**
+                         * `clients`, the method manage by the serviceWorker
+                         */
+                        clients.openWindow(notification.data.url);
+                    }
+                })
+        );
     }
 
     notification.close();
@@ -223,4 +250,26 @@ self.addEventListener('notificationclick', event => {
 
 self.addEventListener('notificationclose', event => {
     console.log('[SW Notification] notification was closed');
+});
+
+self.addEventListener('push', event => {
+    console.log('[SW Push] Notification received');
+    
+    // fallback data object
+    let data = { title: 'New!', content: 'Something new happened!', openURL: '/help' };
+    if (event.data) data = JSON.parse(event.data.text());
+
+    const options = {
+        body: data.content,
+        icon: '/src/images/icons/app-icon-96x96.png',
+        badge: '/src/images/icons/app-icon-96x96.png',
+        data: {
+            url: data.openURL
+        }
+    };
+
+    // self.registration gives access to displaying a new notification
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
 });
