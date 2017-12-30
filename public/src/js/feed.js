@@ -1,5 +1,6 @@
 const POSTS_REQUEST = 'https://pwa-gram-7e675.firebaseio.com/posts.json';
 let picture;
+let fetchedLocation;
 
 var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
@@ -16,11 +17,45 @@ const btnCapture = document.querySelector('#capture-btn');
 const imagePicker = document.querySelector('#image-picker');
 const imagePickerArea = document.querySelector('#pick-image');
 
+const btnLocation = document.querySelector('#location-btn');
+const locationLoader = document.querySelector('#location-loader');
+
+btnLocation.addEventListener('click', event => {
+  btnLocation.style.display = 'none';
+  locationLoader.style.display = 'block';
+  
+  const success = position => {
+    btnLocation.style.display = 'inline';
+    locationLoader.style.display = 'none';
+    fetchedLocation = `Lat: ${position.coords.latitude} Lon: ${position.coords.longitude}`;
+    inpLocation.value = fetchedLocation;
+    document.querySelector('#manual-location').classList.add('is-focused');
+  };
+  const error = err => {
+    console.error(err)
+    btnLocation.style.display = 'inline';
+    locationLoader.style.display = 'none';
+    alert('Could not fetch the location, please try again!!!');
+    fetchedLocation = null;
+  };
+
+  navigator.geolocation.getCurrentPosition(success, error, {
+    timeout: 7000
+  });
+});
+
+function initializeLocation() {
+  if (!('geolocation' in navigator)) {
+    btnLocation.style.display = 'none';
+    return;
+  }
+}
+
 /**
  * @function initializeMedia
  * @description
  * Display the camera whenever the form modal is opened
- * 
+ * @returns {promise}
  */
 function initializeMedia() {
   
@@ -179,6 +214,9 @@ function openCreatePostModal() {
   
   // CAMERA - Displaying the camera
   initializeMedia();
+
+  // LOCATION - Displaying the location
+  initializeLocation();
   
   // ADD TO HOME - Asks the user if he wants to add the app to the home screen of the device
   if (deferredPrompt) {
@@ -197,13 +235,20 @@ function openCreatePostModal() {
   }
 }
 
-
-
 function closeCreatePostModal() {
   createPostArea.style.display = 'none';
   imagePickerArea.style.display = 'none';
   videoPlayer.style.display = 'none';
   canvas.style.display = 'none';
+  btnLocation.style.display = 'inline';
+  locationLoader.style.display = 'none';
+  btnLocation.style.display = 'inline';
+
+  if (videoPlayer.srcObject) {
+    videoPlayer.srcObject.getVideoTracks().forEach(track => {
+      track.stop();
+    })
+  }
 }
 
 function createSaveButton() {

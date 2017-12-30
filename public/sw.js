@@ -2,7 +2,7 @@ importScripts('https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.js
 importScripts('/src/js/idb.js');
 importScripts('/src/js/db.js');
 
-const CACHE_STATIC_NAME = 'pwgram-static-v4.3.11';
+const CACHE_STATIC_NAME = 'pwgram-static-v4.3.14';
 const CACHE_DYNAMIC_NAME = 'pwgram-dynamic-v4.3.3';
 const POSTS_REQUEST = 'https://pwa-gram-7e675.firebaseio.com/posts.json';
 
