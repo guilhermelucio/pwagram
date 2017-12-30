@@ -87,3 +87,5 @@ function dataURItoBlob(dataURI) {
     var blob = new Blob([ab], {type: mimeString});
     return blob;
 }
+
+console.log('update');
