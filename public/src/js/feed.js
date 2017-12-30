@@ -83,6 +83,11 @@ btnCapture.addEventListener('click', event => {
 
 });
 
+// Fallback in case the camera is not available
+imagePicker.addEventListener('change', event => {
+  picture = event.target.files[0];
+});
+
 /**
  * @function sendData
  * @description

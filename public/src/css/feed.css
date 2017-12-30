@@ -37,3 +37,8 @@
 #confirmation-toast {
   z-index: 3000;
 }
+
+.mdl-card__title-text {
+  color: white;
+  text-shadow: 2px 0 2px rgba(0,0,0,0.5);
+}
