@@ -1,4 +1,5 @@
 const POSTS_REQUEST = 'https://pwa-gram-7e675.firebaseio.com/posts.json';
+let picture;
 
 var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
@@ -54,6 +55,34 @@ function initializeMedia() {
     });
 }
 
+// Capture button that stops the stream and take a snapshot of the stream
+btnCapture.addEventListener('click', event => {
+  // Although the video player will be hidden, this won't stop the streaming
+  canvas.style.display = 'block';
+  videoPlayer.style.display = 'none';
+  btnCapture.style.display = 'none';
+
+  const context = canvas.getContext('2d');
+  // stream, xPos, yPos, width, height
+  // height will be set with a calculation to preserve the aspect ratio 
+  context.drawImage(
+    videoPlayer,
+    0,
+    0,
+    canvas.width,
+    videoPlayer.videoHeight / (videoPlayer.videoWidth / canvas.width)
+  );
+
+  // NOTE - Do not forget to stop the streaming
+  videoPlayer.srcObject.getVideoTracks().forEach(track => {
+    track.stop();
+  });
+
+  // Converting a stream to a blob
+  picture = dataURItoBlob(canvas.toDataURL());
+
+});
+
 /**
  * @function sendData
  * @description
@@ -64,18 +93,18 @@ function initializeMedia() {
  * @returns {promise}
  */
 function sendData(id, title, location) {
+  // Configuring the params with the post data
+  const postData = new FormData();
+  postData.append('id', id);
+  postData.append('title', title);
+  postData.append('location', location);
+
+  // Despite gets the image, rename it
+  postData.append('image', picture, id+'.png');
+  
   fetch('https://us-central1-pwa-gram-7e675.cloudfunctions.net/storePostData', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify({
-      id: id,
-      title: title,
-      location: location,
-      image: 'https://firebasestorage.googleapis.com/v0/b/pwa-gram-7e675.appspot.com/o/sf-boat.jpg?alt=media&token=a2694b9c-aeb1-44da-a96d-9aff0c35c5e8'
-    })
+    body: postData,
   }).then(data => {
     console.log(JSON.parse(data));
     updateUI();
@@ -103,7 +132,7 @@ function onFormSubmit(form) {
         id: new Date().toISOString(),
         title: inpTitle.value,
         location: inpLocation.value,
-        image: 'https://firebasestorage.googleapis.com/v0/b/pwa-gram-7e675.appspot.com/o/sf-boat.jpg?alt=media&token=a2694b9c-aeb1-44da-a96d-9aff0c35c5e8'
+        image: picture
       };
 
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
@@ -162,6 +191,8 @@ function openCreatePostModal() {
     deferredPrompt = null;
   }
 }
+
+
 
 function closeCreatePostModal() {
   createPostArea.style.display = 'none';
