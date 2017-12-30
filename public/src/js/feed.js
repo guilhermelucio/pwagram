@@ -4,10 +4,65 @@ var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
 var closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
 var sharedMomentsArea = document.querySelector('#shared-moments');
+
 const form = document.querySelector('form');
 const inpTitle = document.querySelector('#title');
 const inpLocation = document.querySelector('#location');
 
+const videoPlayer = document.querySelector('#player');
+const canvas = document.querySelector('#canvas');
+const btnCapture = document.querySelector('#capture-btn');
+const imagePicker = document.querySelector('#image-picker');
+const imagePickerArea = document.querySelector('#pick-image');
+
+/**
+ * @function initializeMedia
+ * @description
+ * Display the camera whenever the form modal is opened
+ * 
+ */
+function initializeMedia() {
+  
+  // CAMERA - Browsers that does not support mediaDevices at all
+  if (!('mediaDevices' in navigator)) {
+    navigator.mediaDevices = {};
+  }
+
+  // CAMERA - Fallback to access the camera in older browsers
+  if(!('getUserMedia' in navigator.mediaDevices)) {
+
+    // CAMERA - Creating a polyfill of `getUserMedia`
+    navigator.mediaDevices.getUserMedia = function(constraints) {
+      // CAMERA - Try to fallback to the specific getUserMedia implemented by browsers
+      const getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+      if (!getUserMedia) {
+        return Promise.reject(new Error('getUserMedia is not implemented'));
+      }
+      return new Promise((resolve, reject) => {
+        getUserMedia.call(navigator, constraints, resolve, reject);
+      });
+    };
+  }
+
+  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    .then(stream => {
+      videoPlayer.srcObject = stream;
+      videoPlayer.style.display = 'block';
+    })
+    .catch(err => {
+      imagePickerArea.style.display = 'block';
+    });
+}
+
+/**
+ * @function sendData
+ * @description
+ * Sending a new post to the firebase backend server to create a new post
+ * @param {string} id
+ * @param {string} title
+ * @param {string} location
+ * @returns {promise}
+ */
 function sendData(id, title, location) {
   fetch('https://us-central1-pwa-gram-7e675.cloudfunctions.net/storePostData', {
     method: 'POST',
@@ -27,22 +82,39 @@ function sendData(id, title, location) {
   });
 }
 
+/**
+ * @function onFormSubmit
+ * @description
+ * Reacting to the form submit event, getting the values of the inputs and calling
+ * the method that saves a new post. This method is used as a fallback in case serviceWorker
+ * is not supported
+ * @param {object} form
+ * @returns {null|function}
+ */
 function onFormSubmit(form) {
   form.addEventListener('submit', event => {
     event.preventDefault();
+
+    // Checking the input values
     if (inpTitle.value.trim() !== '' && inpLocation.value.trim() !== '') {
+      
+      // Creating a post in the backend format
       const post = {
         id: new Date().toISOString(),
         title: inpTitle.value,
         location: inpLocation.value,
         image: 'https://firebasestorage.googleapis.com/v0/b/pwa-gram-7e675.appspot.com/o/sf-boat.jpg?alt=media&token=a2694b9c-aeb1-44da-a96d-9aff0c35c5e8'
       };
+
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        // Registering a new serviceWorker task to save a new post
+        // The post is going to be executed via serviceWorker
         navigator.serviceWorker.ready
           .then(sw => {
             writeData('sync-posts', post)
               .then(() => sw.sync.register('sync-new-post'))
               .then(() => {
+                // Displaying a snack message
                 const snackBarContainer = document.querySelector('#confirmation-toast');
                 const data = { message: 'Your post was saved for syncing' };
                 snackBarContainer.MaterialSnackbar.showSnackbar(data);
@@ -50,20 +122,35 @@ function onFormSubmit(form) {
               .catch(err => console.log(err));
           });
       } else {
+        // Fallback in case serviceWorker is not supported by the browser
         sendData(id, title, location)
       }
     } else {
       alert('Please add valid data');
     }
+
+    // Closing the form modal
     return closeCreatePostModal();
   });
 }
 
+/**
+ * @function openCreatePostModal
+ * @description
+ * Display the form modal to create a new post
+ * @returns {undefined}
+ */
 function openCreatePostModal() {
   createPostArea.style.display = 'block';
+  
+  // CAMERA - Displaying the camera
+  initializeMedia();
+  
+  // ADD TO HOME - Asks the user if he wants to add the app to the home screen of the device
   if (deferredPrompt) {
     deferredPrompt.prompt();
 
+    // ADD TO HOME - There is only once chance, if the user says no, there will be no second chance
     deferredPrompt.userChoice.then(function(choiceResult) {
       if (choiceResult.outcome === 'dismissed') {
         console.log('User cancelled installation');
@@ -78,6 +165,9 @@ function openCreatePostModal() {
 
 function closeCreatePostModal() {
   createPostArea.style.display = 'none';
+  imagePickerArea.style.display = 'none';
+  videoPlayer.style.display = 'none';
+  canvas.style.display = 'none';
 }
 
 function createSaveButton() {
@@ -134,12 +224,12 @@ const cacheCard = (event) => {
   }
 };
 
+// Old dynamic cache functions, they were replaced by caching dynamic response
 const onSave = event => cacheCard(event);
 const addSaveEventListener = (name, el) => el.addEventListener(name, onSave);
 
 shareImageButton.addEventListener('click', openCreatePostModal);
 closeCreatePostModalButton.addEventListener('click', closeCreatePostModal);
-
 
 function createCard(post) {
   var cardWrapper = createCardWrapper();
@@ -173,6 +263,7 @@ function updateUI(posts) {
  */
 let networkDataReceived = false;
 
+// Fecthing the post data
 fetch(POSTS_REQUEST)
   .then(function(res) {
     return res.json();
@@ -183,7 +274,8 @@ fetch(POSTS_REQUEST)
     return updateUI(data);
   });
 
-// Remember to check if the `caches` object is available
+// Return an immediate cache data to display to the user
+// Remember to check if the `indexedDB` object is available
 if ('indexedDB' in window) {
   readAllData('posts')
     .then(data => {
